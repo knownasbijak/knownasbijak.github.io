@@ -1,8 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
-
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x000000, 0.0015);
 
@@ -587,8 +585,11 @@ scene.add(planet);
 
 //Ganti Deskripsi Planet
 const ringTexts = [
-  'Galaxy of love From Bijak ...',//untuk deskripsi planet layer 1
-  "I love you Nasywa",//untuk deskripsi planet layer 2
+  'Galaxy of love From Bijak',//untuk deskripsi planet layer 1
+  "I love you Nasywa",
+  'Galaxy of love From Bijak',
+  "I love you Nasywa",
+  
   ...(window.dataCCD && window.dataCCD.data.ringTexts ? window.dataCCD.data.ringTexts : [])
 ];
 
@@ -1065,7 +1066,7 @@ function createHintText() {
   canvas.width = canvas.height = canvasSize;
   const context = canvas.getContext('2d');
   const fontSize = 50;
-  const text = 'Happy Girlfriend Day!';
+  const text = 'Klik Buat Mulaii';
   context.font = `bold ${fontSize}px Arial, sans-serif`;
   context.textAlign = 'center';
   context.textBaseline = 'middle';
