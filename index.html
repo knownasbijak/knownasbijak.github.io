@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hmm apa yaa?</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Playfair+Display:ital,wght@0,400;1,400;1,700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -ms-overflow-style: none; scrollbar-width: none;
+        }
+        ::-webkit-scrollbar { display: none; }
+
+        body {
+            background-color: #f5e6d3; 
+            color: #4b3621; font-family: 'Playfair Display', serif;
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+            overflow: hidden; position: relative;
+        }
+
+        #lock-screen {
+            position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; background-color: #f5e6d3;
+            transition: opacity 0.8s ease;
+        }
+
+        .lock-container {
+            background: rgba(255, 253, 250, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 45px 35px;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px rgba(139, 69, 19, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(139, 69, 19, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.3s;
+        }
+
+        .padlock-icon { font-size: 38px; margin-bottom: 10px; filter: drop-shadow(0 4px 6px rgba(139,69,19,0.1)); transition: transform 0.4s; }
+        
+        .lock-greeting {
+            font-family: 'Dancing Script', cursive;
+            font-size: 26px;
+            color: #8b4513;
+            margin-bottom: 25px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .dots-container { display: flex; gap: 14px; margin-bottom: 35px; }
+        .dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #8b4513; transition: 0.2s; }
+        .dot.filled { background-color: #8b4513; transform: scale(1.1); box-shadow: 0 2px 6px rgba(139,69,19,0.3); }
+
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .key-btn {
+            width: 72px; height: 72px; border-radius: 50%;
+            background-color: transparent; border: 1px solid rgba(139, 69, 19, 0.2);
+            font-size: 26px; color: #4b3621; font-weight: 400;
+            font-family: 'Playfair Display', serif; cursor: pointer; 
+            transition: all 0.2s ease;
+        }
+        .key-btn:hover { background-color: rgba(139, 69, 19, 0.05); }
+        .key-btn:active { transform: scale(0.92); background-color: rgba(139, 69, 19, 0.15); border-color: rgba(139, 69, 19, 0.4); }
+        .key-btn.action-btn { border: none; font-weight: 700; font-size: 16px; color: #8b4513; text-transform: uppercase; letter-spacing: 1px; }
+
+        .hint-container { position: relative; margin-top: 30px; opacity: 0; pointer-events: none; transition: 1s ease; }
+        .hint-container.show { opacity: 1; pointer-events: auto; }
+        .hint-btn { padding: 10px 25px; border: none; border-radius: 25px; background: transparent; color: #8b4513; font-weight: 700; cursor: pointer; font-family: 'Playfair Display', serif; font-size: 15px; transition: transform 0.2s ease; text-decoration: underline; }
+        .hint-btn:active { transform: scale(0.95); color: #c44747; }
+        .hint-popup {
+            position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translate(-50%, 15px);
+            background: #fffdfa; color: #8b4513; border: 1px solid rgba(139,69,19,0.2); padding: 12px 24px; border-radius: 12px; font-size: 18px; font-weight: 700;
+            letter-spacing: 2px; white-space: nowrap; opacity: 0; pointer-events: none; transition: 0.3s;
+            box-shadow: 0 10px 25px rgba(139, 69, 19, 0.15);
+        }
+        .hint-popup.active { opacity: 1; transform: translate(-50%, 0); }
+        .hint-popup::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 8px; border-style: solid; border-color: #fffdfa transparent transparent transparent; }
+
+        .shake { animation: shakeError 0.4s ease-in-out; }
+        @keyframes shakeError { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-10px); } 80% { transform: translateX(10px); } }
+
+        #envelope-container {
+            position: relative; width: 300px; height: 200px;
+            background-color: #c4a484; border-radius: 8px; z-index: 10;
+            box-shadow: 0 10px 30px rgba(75, 54, 33, 0.15);
+        }
+        .flap {
+            position: absolute; top: 0; left: 0; width: 100%; height: 120px;
+            background-color: #e8dcca; clip-path: polygon(0 0, 100% 0, 50% 100%);
+            transform-origin: top; transition: 0.8s; z-index: 3; border-radius: 8px 8px 0 0;
+        }
+        .flap.open { transform: rotateX(180deg); }
+        .envelope-front { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .flower-seal { width: 50px; height: 50px; background: #8b4513; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 0 15px rgba(139, 69, 19, 0.2); }
+
+        #canvas-container {
+            position: fixed; inset: 0; z-index: 20; visibility: hidden; opacity: 0;
+            background: transparent; transition: opacity 0.8s; pointer-events: none;
+        }
+
+        #letter-container {
+            visibility: hidden; opacity: 0; position: absolute; width: 90%; max-width: 600px; height: 85vh;
+            background-color: #fdfaf3;
+            background-image: 
+                linear-gradient(90deg, transparent 45px, rgba(200, 150, 100, 0.3) 45px, rgba(200, 150, 100, 0.3) 47px, transparent 47px),
+                linear-gradient(transparent 31px, rgba(186, 140, 99, 0.2) 31px, rgba(186, 140, 99, 0.2) 32px);
+            background-size: 100% 100%, 100% 32px; background-attachment: local;
+            border-radius: 6px; padding: 64px 40px 40px 65px; overflow-y: auto; z-index: 30;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.05), 0 20px 50px rgba(0,0,0,0.1);
+            transition: opacity 1.5s;
+        }
+
+        .show-letter-smooth { visibility: visible !important; animation: fadeInLetter 1.8s ease-out forwards; }
+        @keyframes fadeInLetter { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+
+        .bouquet-sticker-new { position: absolute; top: 15px; right: -8px; width: 110px; opacity: 0; transform: rotate(10deg); z-index: 10; pointer-events: none; filter: drop-shadow(1px 2px 4px rgba(75, 54, 33, 0.1)); animation: dropInNew 1.5s ease forwards 0.8s; }
+        @keyframes dropInNew { 0% { opacity: 0; transform: translateY(-15px) rotate(10deg); } 100% { opacity: 1; transform: translateY(0) rotate(10deg); } }
+
+        .letter-content { display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .blur-text { opacity: 0; filter: blur(10px); transform: translateY(20px); transition: 1s; }
+        .blur-text.reveal { opacity: 1; filter: blur(0); transform: translateY(0); }
+
+        .title { font-style: italic; font-size: 22px; color: #8b4513; margin-bottom: 0; line-height: 32px; width: 80%; }
+        .date { font-size: 12px; color: #c4a484; margin-bottom: 32px; line-height: 32px; }
+        .handwriting { font-family: 'Dancing Script', cursive; font-size: 32px; color: #4b3621; align-self: flex-start; margin-bottom: 32px; line-height: 32px; }
+        .paragraph { font-size: 16px; line-height: 32px; color: #5d4037; text-align: justify; margin-bottom: 32px; width: 100%; }
+
+        .action-buttons { display: flex; gap: 15px; margin-top: 32px; margin-bottom: 32px; justify-content: center; flex-wrap: wrap; width: 100%; }
+        .download-btn { height: 42px; padding: 0 28px; background: #8b4513; color: white; border: none; border-radius: 25px; font-weight: 700; cursor: pointer; transition: 0.3s; font-family: 'Playfair Display', serif; font-size: 14px; box-shadow: 0 4px 10px rgba(139, 69, 19, 0.15); }
+        .next-btn { height: 42px; line-height: 38px; padding: 0 28px; background: transparent; color: #8b4513; border: 2px solid #8b4513; border-radius: 25px; font-weight: 700; cursor: pointer; transition: 0.3s; font-family: 'Playfair Display', serif; font-size: 14px; text-decoration: none; display: inline-block; }
+        .next-btn:hover { background: #8b4513; color: white; box-shadow: 0 4px 10px rgba(139, 69, 19, 0.15); }
+
+        .music-player { margin-bottom: 32px; padding: 15px 20px; background: #fffaf0; border-radius: 12px; border: 1px solid #f5ebd1; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 280px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .song-name { font-size: 15px; color: #4b3621; font-weight: 600; }
+        .artist-name { font-size: 12px; color: #8b4513; margin-top: 2px; }
+        audio { width: 100%; height: 35px; margin-top: 8px; outline: none; }
+
+        #flash-overlay { position: fixed; inset: 0; background-color: white; z-index: 9999; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 0.5s ease-out; }
+        
+        #preview-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; animation: softFadeIn 0.8s ease forwards; }
+        @keyframes softFadeIn { 0% { opacity: 0; transform: translateY(10px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        .preview-content { background: #fffdfa; padding: 25px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; width: 90%; max-width: 400px; max-height: 90vh; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
+        .preview-image-container { width: 100%; max-height: 50vh; overflow-y: auto; margin-bottom: 20px; border: 1px solid #e8dcca; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+        #preview-image { width: 100%; height: auto; display: block; }
+        .preview-actions { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+        .manual-dl-btn { background: #8b4513; color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-size: 15px; font-weight: 700; display: inline-block; text-align: center; width: 80%; }
+        .close-modal { color: #c4a484; cursor: pointer; font-size: 14px; text-decoration: underline; padding: 5px; }
+
+        .screenshot-mode { position: relative !important; width: 600px !important; max-width: 600px !important; height: auto !important; left: 0 !important; top: 0 !important; transform: none !important; margin: 0 auto !important; background-attachment: scroll, scroll !important; overflow: visible !important; }
+        .screenshot-mode * { transition: none !important; animation: none !important; }
+        .screenshot-mode .blur-text { opacity: 1 !important; filter: none !important; transform: none !important; will-change: auto !important; text-shadow: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="lock-screen">
+        <div class="lock-container" id="lock-box">
+            <div class="padlock-icon" id="padlock-icon">🔒</div>
+            <p class="lock-greeting">hiii, tebak kodenya dong<br> i bet u know, what's the passcode</p>
+            <div class="dots-container" id="pin-dots">
+                <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+            <div class="keypad">
+                <button class="key-btn" onclick="addPin('1')">1</button>
+                <button class="key-btn" onclick="addPin('2')">2</button>
+                <button class="key-btn" onclick="addPin('3')">3</button>
+                <button class="key-btn" onclick="addPin('4')">4</button>
+                <button class="key-btn" onclick="addPin('5')">5</button>
+                <button class="key-btn" onclick="addPin('6')">6</button>
+                <button class="key-btn" onclick="addPin('7')">7</button>
+                <button class="key-btn" onclick="addPin('8')">8</button>
+                <button class="key-btn" onclick="addPin('9')">9</button>
+                <button class="key-btn action-btn" onclick="delPin()">⌫</button>
+                <button class="key-btn" onclick="addPin('0')">0</button>
+                <button class="key-btn action-btn" onclick="checkPin()">OK</button>
+            </div>
+            <div class="hint-container" id="hint-wrap">
+                <div class="hint-popup" id="hint-pop">111209</div>
+                <button class="hint-btn" onclick="showHint()">Bercandaa, ini hint nyaa</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="envelope-container">
+        <div class="flap" id="env-flap"></div>
+        <div class="envelope-front">
+            <div class="flower-seal" id="open-btn">💮</div>
+            <p style="position: absolute; bottom: 30px; font-family:'Dancing Script'; font-size:24px; color: #4b3621; letter-spacing: 2px;">untuk nasywa</p>
+        </div>
+    </div>
+
+    <div id="letter-container">
+        <img src="buket.png" class="bouquet-sticker-new" alt="Buket">
+        <div class="letter-content">
+            <h1 class="blur-text title">To The One Who Deserve It</h1>
+            <p class="blur-text date">Nasywa Nabillah</p>
+            <h2 class="blur-text handwriting">Dearest Nasywa,</h2>
+            <p class="blur-text paragraph">Thank you for being my motivation to be better, wa.</p>
+            <p class="blur-text paragraph">Jujur, dari pertama kali aku ngeliat kamu, ada perasaan seneng yang susah banget buat dijelasin. Rasanya ada daya tarik tersendiri yang akhirnya bikin aku ngumpulin keberanian buat follow Instagram kamu.</p>
+            <p class="blur-text paragraph">Lewat situ, aku jadi sering merhatiin kamu. Sempet ada rasa sedih dan kepikiran juga pas liat kamu beberapa kali posting notes lagu-lagu galau.</p>
+            <p class="blur-text paragraph">Di titik itu, aku sempet nyesel banget... kenapa ya kita nggak ketemu dari dulu aja? Sekarang aku udah kelas 12, udah lulus juga, dan rasanya waktu buat ngeliat kamu di sekolah makin sempit. Padahal, aku suka banget liatin hal-hal kecil dari kamu, kaya repost-an kamu yang kadang random, tapi kadang juga bisa bucin.</p>
+            <p class="blur-text paragraph">Sampai akhirnya pas terakhir kita ketemu, itu bener-bener lucu dan berkesan. Posisi foto kamu yang pas banget di depan aku bikin jwhhshs. Dan jujur takut geer sih tapi aku kaya notice sesuatu yang mungkin berbeda hehehe.</p>
+            <p class="blur-text paragraph">Daripada aku cuma nyimpen perasaan ini sendirian dan nyesel nantinya, aku mutusin buat bertindak. Lewat bunga dan surat ini, aku cuma mau kamu tahu... kalau kamu adalah perempuan pertama yang dapet perlakuan kaya gini dari aku.</p>
+            <h2 class="blur-text handwriting" style="align-self: flex-end;">Someone who's admire you</h2>
+            
+            <div class="blur-text action-buttons" id="action-buttons">
+                <button class="download-btn" id="dl-btn">Simpan Surat Ini</button>
+                <a href="games.html" class="next-btn">Lanjut ke Menu →</a>
+            </div>
+
+            <div class="blur-text music-player" id="music-player-box">
+                <span class="song-name">Semua Aku Dirayakan</span>
+                <span class="artist-name">Nadin Amizah</span>
+                <audio id="bg-music" controls preload="auto" loop><source src="semuaakudirayakan.mp3" type="audio/mpeg"></audio>
+            </div>
+        </div>
+    </div>
+
+    <div id="flash-overlay"></div>
+    <div id="preview-modal">
+        <div class="preview-content">
+            <h3 style="color: #4b3621; margin-bottom: 15px;">Surat Berhasil Disimpan!</h3>
+            <div class="preview-image-container">
+                <img id="preview-image" src="">
+            </div>
+            <div class="preview-actions">
+                <a class="manual-dl-btn" id="manual-dl-btn" href="" download="Surat_Nasywa.png">Simpan Manual</a>
+                <span class="close-modal" onclick="document.getElementById('preview-modal').style.display='none'">Tutup</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pin = "";
+        const targetPin = "111209";
+        const dots = document.querySelectorAll('.dot');
+        const padlockIcon = document.getElementById('padlock-icon');
+        const lockScreen = document.getElementById('lock-screen');
+        const lockBox = document.getElementById('lock-box');
+
+        // LOGIKA PENGECEKAN SKIP LOCKSCREEN DARI URL PARAMETER
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.get('skip') === 'true') {
+                // Sembunyiin lock screen & amplop langsung
+                document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('envelope-container').style.display = 'none';
+                
+                // Tampilin surat
+                const letter = document.getElementById('letter-container');
+                letter.style.visibility = 'visible';
+                letter.style.opacity = '1';
+                letter.classList.add('show-letter-smooth');
+                
+                // Hilangin blur langsung tanpa nunggu animasi 8 detik
+                document.querySelectorAll('.blur-text').forEach((t) => {
+                    t.style.animation = 'none'; 
+                    t.style.opacity = '1';
+                    t.style.filter = 'blur(0)';
+                    t.style.transform = 'translateY(0)';
+                });
+            } else {
+                // Kalau nggak skip, tampilin hint lockscreen kaya biasa
+                setTimeout(() => document.getElementById('hint-wrap').classList.add('show'), 3000);
+            }
+        });
+
+        function addPin(n) { 
+            if(pin.length < 6) { 
+                pin += n; 
+                updateDots(); 
+            } 
+        }
+        
+        function delPin() { 
+            if(pin.length > 0) {
+                pin = pin.slice(0, -1); 
+                updateDots(); 
+            }
+        }
+        
+        function updateDots() { 
+            dots.forEach((d, i) => {
+                if (i < pin.length) { d.classList.add('filled'); }
+                else { d.classList.remove('filled'); }
+            }); 
+        }
+
+        function showHint() { 
+            const p = document.getElementById('hint-pop'); 
+            p.classList.add('active');
+            setTimeout(() => p.classList.remove('active'), 2500);
+        }
+
+        function checkPin() {
+            if(pin === targetPin) {
+                padlockIcon.innerHTML = '🔓';
+                padlockIcon.style.transform = 'scale(1.3)';
+                setTimeout(() => {
+                    lockScreen.style.opacity = '0';
+                    setTimeout(() => lockScreen.style.display = 'none', 800);
+                }, 500);
+            } else {
+                lockBox.classList.add('shake');
+                setTimeout(() => { 
+                    lockBox.classList.remove('shake'); 
+                    pin = ""; 
+                    updateDots(); 
+                }, 400);
+            }
+        }
+
+        let scene, camera, renderer;
+        let instancedMeshes = {};
+        let flowerData = [];
+        let meshCount = { rose: 0, lily: 0, genericSmall: 0, genericLarge: 0 };
+        let currentIndices = { rose: 0, lily: 0, genericSmall: 0, genericLarge: 0 };
+        const dummy = new THREE.Object3D();
+        let startTime = 0;
+        let lastTime = performance.now();
+        let animationId;
+
+        function createGenericFlowerTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const cx = 128, cy = 128;
+            ctx.shadowColor = 'rgba(0,0,0,0.15)'; ctx.shadowBlur = 6;
+            for(let i=0; i<5; i++) {
+                ctx.save(); ctx.translate(cx, cy); ctx.rotate((Math.PI * 2 / 5) * i);
+                ctx.beginPath(); ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(40, -40, 60, -100, 0, -110);
+                ctx.bezierCurveTo(-60, -100, -40, -40, 0, 0);
+                const grd = ctx.createRadialGradient(0, -50, 0, 0, -50, 60);
+                grd.addColorStop(0, 'rgba(255, 255, 255, 0.9)'); grd.addColorStop(1, 'rgba(200, 200, 200, 0.6)');
+                ctx.fillStyle = grd; ctx.fill(); ctx.restore();
+            }
+            ctx.shadowBlur = 0; ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI * 2); ctx.fillStyle = '#ffb300'; ctx.fill();
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createLilyTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const cx = 128, cy = 128;
+            ctx.shadowColor = 'rgba(0,0,0,0.15)'; ctx.shadowBlur = 6;
+            const petalCount = 6;
+            for(let i=0; i<petalCount; i++) {
+                ctx.save(); ctx.translate(cx, cy); ctx.rotate((Math.PI * 2 / petalCount) * i);
+                ctx.beginPath(); ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(20, -10, 30, -80, 0, -100);
+                ctx.bezierCurveTo(-30, -80, -20, -10, 0, 0);
+                const grd = ctx.createRadialGradient(0, -40, 0, 0, -40, 60);
+                grd.addColorStop(0, 'rgba(255, 255, 255, 0.95)'); grd.addColorStop(1, 'rgba(210, 210, 210, 0.7)');
+                ctx.fillStyle = grd; ctx.fill(); ctx.restore();
+            }
+            ctx.shadowBlur = 0; ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fillStyle = '#ff8f00'; ctx.fill();
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createRoseTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const cx = 128, cy = 128;
+            ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 10;
+            const sizeMap = [110, 90, 70, 50];
+            const densityMap = [6, 8, 8, 10];
+            
+            for(let layer=0; layer < sizeMap.length; layer++) {
+                let size = sizeMap[layer];
+                let petals = densityMap[layer];
+                let step = (Math.PI * 2) / petals;
+                for(let i=0; i < petals; i++) {
+                    let angle = i * step + (layer % 2 === 0 ? step/2 : 0);
+                    ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
+                    ctx.beginPath(); ctx.moveTo(0, 0);
+                    ctx.bezierCurveTo(size/3, -size/3, size/2, -size, 0, -size*1.1);
+                    ctx.bezierCurveTo(-size/2, -size, -size/3, -size/3, 0, 0);
+                    
+                    const grd = ctx.createRadialGradient(0, -size/2, 0, 0, -size/2, size*0.6);
+                    grd.addColorStop(0, 'rgba(255, 255, 255, 0.85)'); grd.addColorStop(1, 'rgba(180, 180, 180, 0.5)');
+                    ctx.fillStyle = grd; ctx.fill(); ctx.restore();
+                }
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function initThree() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 1000);
+            camera.position.z = 200;
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+            container.appendChild(renderer.domElement);
+
+            const roseTex = createRoseTexture();
+            const lilyTex = createLilyTexture();
+            const genericTex = createGenericFlowerTexture();
+            const geometry = new THREE.PlaneGeometry(10, 10);
+            
+            const materials = {
+                rose: new THREE.MeshBasicMaterial({ map: roseTex, transparent: true, alphaTest: 0.05, depthWrite: false }),
+                lily: new THREE.MeshBasicMaterial({ map: lilyTex, transparent: true, alphaTest: 0.05, depthWrite: false }),
+                genericSmall: new THREE.MeshBasicMaterial({ map: genericTex, transparent: true, alphaTest: 0.05, depthWrite: false }),
+                genericLarge: new THREE.MeshBasicMaterial({ map: genericTex, transparent: true, alphaTest: 0.05, depthWrite: false })
+            };
+
+            const isMobile = window.innerWidth <= 768;
+            const aspect = window.innerWidth / window.innerHeight;
+            const w = 240 * aspect; const h = 240; 
+            const cols = isMobile ? 12 : 20;
+            const rows = isMobile ? 16 : 14;
+            const stepX = w / cols;
+            const stepY = h / rows;
+
+            const colorPalettes = [
+                '#ff0000', '#ffde00', '#0066ff', '#ff007f'
+            ];
+
+            for(let layer = 0; layer < 2; layer++) {
+                for(let r = -rows/2 - 1; r <= rows/2 + 1; r++) {
+                    for(let c = -cols/2 - 1; c <= cols/2 + 1; c++) {
+                        
+                        let ox = layer === 1 ? stepX/2 : 0;
+                        let oy = layer === 1 ? stepY/2 : 0;
+                        let tx = (c * stepX) + ox + (Math.random()*stepX*0.6 - stepX*0.3);
+                        let ty = (r * stepY) + oy + (Math.random()*stepY*0.6 - stepY*0.3);
+                        
+                        let distNorm = Math.sqrt(Math.pow(tx/(w/2), 2) + Math.pow(ty/(h/2), 2));
+                        
+                        let delay, type, tz;
+                        let sizeFactor = 1.0;
+                        
+                        if(distNorm > 0.8) { 
+                            delay = 200; 
+                            type = Math.random() > 0.3 ? 'genericLarge' : 'rose';
+                            sizeFactor = 2.2; tz = -15; 
+                        } 
+                        else if(distNorm > 0.5) { 
+                            delay = 1000; 
+                            const rnd = Math.random();
+                            type = rnd > 0.5 ? 'genericLarge' : (rnd > 0.2 ? 'rose' : 'lily');
+                            sizeFactor = 1.8; tz = -10; 
+                        }  
+                        else if(distNorm > 0.25) { 
+                            delay = 1800; 
+                            const rnd = Math.random();
+                            type = rnd > 0.6 ? 'rose' : (rnd > 0.3 ? 'lily' : 'genericSmall');
+                            sizeFactor = 1.4; tz = -5; 
+                        } 
+                        else { 
+                            delay = 2600; 
+                            type = Math.random() > 0.4 ? 'genericSmall' : 'lily';
+                            sizeFactor = 1.1; tz = 0; 
+                        } 
+                        
+                        delay += Math.random() * 300; 
+                        let size = 2.0 * sizeFactor * (Math.random() * 0.4 + 0.8);
+                        if(isMobile) size *= 0.85;
+
+                        let sx = tx + (tx > 0 ? 180 : -180);
+                        let sy = ty + (ty > 0 ? 180 : -180);
+                        let tRot = Math.random() * Math.PI * 2;
+                        let sRot = tRot + (Math.random() - 0.5) * 4;
+
+                        flowerData.push({
+                            type, sx, sy, sz: tz,
+                            tx, ty, tz, sRot, tRot,
+                            scale: size, delay,
+                            progress: 0,
+                            color: colorPalettes[Math.floor(Math.random() * colorPalettes.length)]
+                        });
+                        meshCount[type]++;
+                    }
+                }
+            }
+
+            const types = ['rose', 'lily', 'genericSmall', 'genericLarge'];
+            types.forEach(type => {
+                if (meshCount[type] > 0) {
+                    instancedMeshes[type] = new THREE.InstancedMesh(geometry, materials[type], meshCount[type]);
+                    scene.add(instancedMeshes[type]);
+                }
+            });
+
+            const colorObj = new THREE.Color();
+            flowerData.forEach(f => {
+                const type = f.type;
+                if (!instancedMeshes[type]) return;
+                
+                colorObj.set(f.color);
+                instancedMeshes[type].setColorAt(currentIndices[type], colorObj);
+                
+                dummy.position.set(f.sx, f.sy, f.sz);
+                dummy.rotation.set(0, 0, f.sRot);
+                dummy.scale.set(0, 0, 0); 
+                dummy.updateMatrix();
+                instancedMeshes[type].setMatrixAt(currentIndices[type], dummy.matrix);
+                currentIndices[type]++;
+            });
+
+            types.forEach(type => {
+                if (instancedMeshes[type]) {
+                    instancedMeshes[type].instanceMatrix.needsUpdate = true;
+                    if(instancedMeshes[type].instanceColor) instancedMeshes[type].instanceColor.needsUpdate = true;
+                }
+            });
+            
+            startTime = performance.now();
+            lastTime = startTime;
+            renderLoop();
+        }
+
+        function renderLoop() {
+            animationId = requestAnimationFrame(renderLoop);
+            let now = performance.now();
+            let dt = now - lastTime; lastTime = now;
+            
+            const types = ['rose', 'lily', 'genericSmall', 'genericLarge'];
+            let loopIndices = { rose: 0, lily: 0, genericSmall: 0, genericLarge: 0 };
+
+            for(let i=0; i < flowerData.length; i++) {
+                let f = flowerData[i];
+                const type = f.type;
+                if (!instancedMeshes[type]) { loopIndices[type]++; continue; }
+                
+                if(now - startTime > f.delay) {
+                    if(f.progress < 1) {
+                        f.progress += dt * 0.0006; 
+                        if(f.progress > 1) f.progress = 1;
+                    }
+                    let ease = 1 - Math.pow(1 - f.progress, 3);
+                    let cx = f.sx + (f.tx - f.sx) * ease;
+                    let cy = f.sy + (f.ty - f.sy) * ease;
+                    let cr = f.sRot + (f.tRot - f.sRot) * ease;
+                    dummy.position.set(cx, cy, f.sz);
+                    dummy.rotation.set(0, 0, cr);
+                    dummy.scale.set(f.scale, f.scale, f.scale);
+                    dummy.updateMatrix();
+                    instancedMeshes[type].setMatrixAt(loopIndices[type], dummy.matrix);
+                }
+                loopIndices[type]++;
+            }
+
+            types.forEach(type => {
+                if (instancedMeshes[type]) {
+                    instancedMeshes[type].instanceMatrix.needsUpdate = true;
+                }
+            });
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        document.getElementById('open-btn').addEventListener('click', () => {
+            const music = document.getElementById('bg-music'); music.play();
+            document.getElementById('env-flap').classList.add('open');
+            document.getElementById('open-btn').style.opacity = '0';
+            
+            setTimeout(() => {
+                const env = document.getElementById('envelope-container');
+                env.style.transition = '1s'; env.style.transform = 'scale(2)'; env.style.opacity = '0';
+                
+                setTimeout(() => {
+                    env.style.display = 'none';
+                    const canvasCont = document.getElementById('canvas-container');
+                    canvasCont.style.visibility = 'visible'; canvasCont.style.opacity = '1';
+                    
+                    initThree();
+
+                    setTimeout(() => {
+                        canvasCont.style.opacity = '0';
+                        setTimeout(() => {
+                            canvasCont.style.visibility = 'hidden';
+                            cancelAnimationFrame(animationId);
+                            if(renderer) { 
+                                renderer.dispose(); 
+                                Object.values(instancedMeshes).forEach(mesh => mesh.geometry.dispose());
+                                Object.values(instancedMeshes).forEach(mesh => mesh.material.dispose());
+                                canvasCont.innerHTML = ''; 
+                            }
+                            
+                            const letter = document.getElementById('letter-container');
+                            letter.style.visibility = 'visible'; letter.classList.add('show-letter-smooth');
+                            
+                            document.querySelectorAll('.blur-text').forEach((t, i) => {
+                                setTimeout(() => t.classList.add('reveal'), i * 900);
+                            });
+                        }, 800);
+                    }, 4500); 
+                }, 800);
+            }, 800);
+        });
+
+        document.getElementById('dl-btn').addEventListener('click', () => {
+            const flash = document.getElementById('flash-overlay');
+            flash.style.visibility = 'visible'; flash.style.opacity = '1';
+            setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.style.visibility = 'hidden', 500); }, 400);
+            
+            document.getElementById('action-buttons').style.display = 'none';
+            document.getElementById('music-player-box').style.display = 'none';
+            
+            const letter = document.getElementById('letter-container');
+            letter.classList.add('screenshot-mode');
+
+            setTimeout(() => {
+                html2canvas(letter, { backgroundColor: '#fdfaf3', scale: 2, useCORS: true, logging: false }).then(canvas => {
+                    letter.classList.remove('screenshot-mode');
+                    document.getElementById('action-buttons').style.display = 'flex';
+                    document.getElementById('music-player-box').style.display = 'flex';
+                    
+                    const data = canvas.toDataURL('image/png');
+                    document.getElementById('preview-image').src = data;
+                    document.getElementById('manual-dl-btn').href = data;
+                    document.getElementById('preview-modal').style.display = 'flex';
+                });
+            }, 600);
+        });
+    </script>
+</body>
+</html>

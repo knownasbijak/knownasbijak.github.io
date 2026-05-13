@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Games</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Playfair Display', serif;
+            -ms-overflow-style: none; 
+            scrollbar-width: none;
+        }
+        
+        ::-webkit-scrollbar { display: none; }
+
+        body {
+            background-color: #f5e6d3;
+            color: #4b3621;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px 20px 80px 20px;
+            overflow-x: hidden;
+        }
+
+        .back-nav {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            text-decoration: none;
+            color: #8b4513;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+            opacity: 0;
+            animation: fadeInDown 1s 0.2s forwards;
+            font-size: 15px;
+        }
+
+        .back-nav:hover {
+            transform: translateX(-5px);
+            color: #c44747;
+        }
+
+        .icon-svg-small {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .hero-container {
+            background: rgba(255, 253, 250, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 69, 19, 0.1);
+            border-radius: 24px;
+            padding: 40px 40px;
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(139, 69, 19, 0.08);
+            margin-bottom: 40px;
+            margin-top: 20px;
+            opacity: 0;
+            animation: fadeInDown 1s 0.5s forwards;
+        }
+
+        .greeting-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .greeting-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 42px;
+            color: #8b4513;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        .greeting-title span {
+            color: #c44747;
+        }
+
+        .greeting-desc {
+            font-size: 16px;
+            color: #5d4037;
+            line-height: 1.6;
+            max-width: 600px;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .game-card {
+            background-color: #fffdfa;
+            border-radius: 20px;
+            padding: 30px 25px;
+            text-align: center;
+            text-decoration: none;
+            color: #4b3621;
+            box-shadow: 0 10px 30px rgba(139, 69, 19, 0.05);
+            border: 1px solid rgba(232, 220, 202, 0.5);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .game-card:nth-child(1) { animation: fadeInUp 0.8s 0.8s forwards; }
+        .game-card:nth-child(2) { animation: fadeInUp 0.8s 1.0s forwards; }
+        .game-card:nth-child(3) { animation: fadeInUp 0.8s 1.2s forwards; }
+        .game-card:nth-child(4) { animation: fadeInUp 0.8s 1.4s forwards; }
+
+        .game-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(139, 69, 19, 0.12);
+            border-color: #c4a484;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg);
+            transition: all 0.7s;
+        }
+
+        .game-card:hover::before {
+            left: 200%;
+        }
+
+        .icon-wrapper {
+            width: 70px;
+            height: 70px;
+            background-color: #fff0db;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 15px rgba(139, 69, 19, 0.05);
+            transition: transform 0.4s ease;
+            color: #8b4513; 
+        }
+
+        .icon-svg {
+            width: 32px;
+            height: 32px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .game-card:hover .icon-wrapper {
+            transform: scale(1.1) rotate(5deg);
+            background-color: #ffe6cf;
+            color: #c44747; 
+        }
+
+        .game-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .game-desc {
+            font-size: 14px;
+            color: #8b4513;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .play-btn {
+            margin-top: auto;
+            padding: 10px 24px;
+            background-color: transparent;
+            color: #8b4513;
+            border: 2px solid #8b4513;
+            border-radius: 25px;
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .game-card:hover .play-btn {
+            background-color: #8b4513;
+            color: #fffdfa;
+            box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+        }
+
+        .next-page-container {
+            margin-top: 50px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s 1.6s forwards;
+        }
+
+        .next-page-btn {
+            padding: 14px 40px;
+            background-color: transparent;
+            color: #8b4513;
+            border: 2px solid #8b4513;
+            border-radius: 30px;
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .next-page-btn:hover {
+            background-color: #8b4513;
+            color: #fffdfa;
+            box-shadow: 0 10px 20px rgba(139, 69, 19, 0.2);
+            transform: translateY(-3px);
+        }
+
+        @keyframes fadeInDown {
+            0% { opacity: 0; transform: translateY(-30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .hero-container {
+                padding: 30px 20px;
+                margin-top: 40px;
+            }
+            .back-nav {
+                top: 20px;
+                left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html?skip=true" class="back-nav">
+        <svg class="icon-svg-small" viewBox="0 0 24 24">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Kembali
+    </a>
+
+    <div class="hero-container">
+        <div class="greeting-content">
+            <h1 class="greeting-title">Haii, <span>Nasywa!</span></h1>
+            <p class="greeting-desc">
+                Ini adalah ruang bermain kecil yang sengaja aku buat khusus untuk kamu. Selamat mengeksplor cantikk, semoga kamu suka yaa sama alur di dalamnya. Pilih langsung gamenya di bawah!
+            </p>
+        </div>
+    </div>
+
+    <div class="menu-grid">
+        <a href="pump.html" class="game-card">
+            <div class="icon-wrapper">
+                <svg class="icon-svg" viewBox="0 0 24 24">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+            </div>
+            <h2 class="game-title">Pump the Heart</h2>
+            <p class="game-desc">Bantu aku buat isi penuh hati buat kamu!</p>
+            <button class="play-btn">Main Sekarang</button>
+        </a>
+
+        <a href="search.html" class="game-card">
+            <div class="icon-wrapper">
+                <svg class="icon-svg" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+            </div>
+            <h2 class="game-title">Word Search</h2>
+            <p class="game-desc">Cari susunan kata-kata yang nyempil di dalem kotak huruf yang ada.</p>
+            <button class="play-btn">Main Sekarang</button>
+        </a>
+
+        <a href="cupid.html" class="game-card">
+            <div class="icon-wrapper">
+                <svg class="icon-svg" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="6"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <line x1="22" y1="2" x2="12" y2="12"></line>
+                    <polygon points="16 2 22 2 22 8"></polygon>
+                </svg>
+            </div>
+            <h2 class="game-title">Cupid's Arrow</h2>
+            <p class="game-desc">Bantu Cupid nembak panah ke hati.</p>
+            <button class="play-btn">Main Sekarang</button>
+        </a>
+
+        <a href="catch.html" class="game-card">
+            <div class="icon-wrapper">
+                <svg class="icon-svg" viewBox="0 0 24 24">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+            </div>
+            <h2 class="game-title">Catch the Flower</h2>
+            <p class="game-desc">Tangkep semua bunga yang jatuh ke keranjang, jangan sampai kelewatan!</p>
+            <button class="play-btn">Main Sekarang</button>
+        </a>
+    </div>
+
+    <div class="next-page-container">
+        <a href="/galaxy/galaxy.html" class="next-page-btn">
+            Lanjut Lagii 
+            <svg class="icon-svg-small" viewBox="0 0 24 24">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+        </a>
+    </div>
+
+</body>
+</html>

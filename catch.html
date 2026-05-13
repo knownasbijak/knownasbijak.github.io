@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catch the Flower</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Playfair Display', serif;
+            -ms-overflow-style: none; scrollbar-width: none;
+            user-select: none; touch-action: none; /* Mencegah layar ke-scroll pas main */
+        }
+        ::-webkit-scrollbar { display: none; }
+
+        body {
+            background-color: #f5e6d3;
+            color: #4b3621;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 50px 20px; overflow: hidden; position: relative;
+        }
+
+        /* BACK BUTTON */
+        .back-nav {
+            position: absolute; top: 30px; left: 30px;
+            text-decoration: none; color: #8b4513; font-weight: 700;
+            display: flex; align-items: center; gap: 8px; transition: 0.3s;
+            font-size: 15px; z-index: 10;
+        }
+        .back-nav:hover { transform: translateX(-5px); color: #c44747; }
+        .icon-svg-small { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+        /* HEADER */
+        header {
+            text-align: center; margin-bottom: 25px; margin-top: 10px;
+            animation: fadeInDown 1s ease-out forwards;
+        }
+        .subtitle { font-family: 'Dancing Script', cursive; font-size: 24px; color: #c44747; margin-bottom: 5px; }
+        .title { font-size: 32px; font-weight: 700; color: #3e2723; }
+
+        /* GAME AREA */
+        .game-container {
+            background: rgba(255, 253, 250, 0.85);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 69, 19, 0.1); border-radius: 24px;
+            padding: 25px; width: 100%; max-width: 400px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 20px 40px rgba(139, 69, 19, 0.08);
+            animation: fadeInUp 1s 0.2s ease-out forwards;
+            opacity: 0; transform: translateY(20px);
+        }
+
+        .score-board {
+            font-size: 18px; font-weight: 700; color: #8b4513;
+            margin-bottom: 15px; letter-spacing: 1px;
+        }
+
+        /* PLAY AREA (Canvas Game) */
+        .play-area {
+            width: 300px; height: 350px;
+            background-color: #fffdfa;
+            border: 2px solid #e8dcca; border-radius: 16px;
+            position: relative; overflow: hidden;
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.03);
+        }
+
+        /* BASKET */
+        .basket {
+            position: absolute; bottom: 10px; left: 125px; /* (300 / 2) - (50 / 2) */
+            width: 50px; height: 45px;
+            cursor: pointer;
+            filter: drop-shadow(0 4px 4px rgba(139, 69, 19, 0.2));
+            z-index: 5;
+        }
+        .basket svg {
+            width: 100%; height: 100%;
+        }
+
+        /* FALLING BOUQUETS */
+        .bouquet {
+            position: absolute; top: -40px;
+            width: 35px; height: 35px;
+            filter: drop-shadow(0 2px 4px rgba(196, 71, 71, 0.2));
+            z-index: 2;
+        }
+
+        /* FLOATING TEXT */
+        .floating-text {
+            position: absolute; font-weight: 700; font-size: 16px; font-family: 'Dancing Script', cursive;
+            pointer-events: none; animation: floatUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            color: #c44747; text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+            30% { opacity: 1; transform: translateY(0) scale(1.1); }
+            100% { opacity: 0; transform: translateY(-30px) scale(0.9); }
+        }
+
+        /* WIN MODAL */
+        #win-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+            animation: softFadeIn 0.5s ease forwards;
+        }
+        .modal-content {
+            background: #fffdfa; padding: 40px 30px; border-radius: 20px;
+            text-align: center; width: 85%; max-width: 350px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 2px solid #e8dcca;
+        }
+        .modal-title { font-family: 'Dancing Script', cursive; font-size: 36px; color: #c44747; margin-bottom: 15px; line-height: 1.2; }
+        .modal-desc { font-size: 16px; color: #5d4037; line-height: 1.6; margin-bottom: 25px; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; }
+        .action-btn {
+            padding: 10px 20px; border-radius: 25px; font-weight: 700; cursor: pointer;
+            font-family: 'Playfair Display', serif; font-size: 14px; text-decoration: none; transition: 0.3s;
+        }
+        .btn-primary { background: #8b4513; color: white; border: none; box-shadow: 0 4px 15px rgba(139, 69, 19, 0.2); }
+        .btn-primary:active { transform: scale(0.95); }
+
+        @keyframes fadeInDown { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes softFadeIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <a href="games.html" class="back-nav">
+        <svg class="icon-svg-small" viewBox="0 0 24 24">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Kembali
+    </a>
+
+    <header>
+        <p class="subtitle">Catch them all!</p>
+        <h1 class="title">Catch the Flower</h1>
+    </header>
+
+    <div class="game-container">
+        <div class="score-board" id="score-text">Bunga Ditangkap: 0 / 10</div>
+        
+        <div class="play-area" id="play-area">
+            <div class="basket" id="basket">
+                <svg viewBox="0 0 24 24">
+                    <path d="M4 6h16l-2 14H6Z" fill="#e8dcca" stroke="#8b4513" stroke-width="1.5" stroke-linejoin="round"/>
+                    <path d="M8 6V4a4 4 0 0 1 8 0v2" fill="none" stroke="#8b4513" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+
+        <p style="margin-top: 20px; font-size: 13px; color: #8b4513; text-align: center;">Usap layar untuk menggeser keranjangnya!</p>
+    </div>
+
+    <div id="win-modal">
+        <div class="modal-content">
+            <svg style="width: 55px; height: 55px; margin-bottom: 15px;" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="4" fill="#ff69b4"/>
+                <circle cx="12" cy="16" r="4" fill="#ff69b4"/>
+                <circle cx="8" cy="12" r="4" fill="#ff69b4"/>
+                <circle cx="16" cy="12" r="4" fill="#ff69b4"/>
+                <circle cx="12" cy="12" r="2" fill="#ffd700"/>
+            </svg>
+            <h2 class="modal-title">Got 'Em!</h2>
+            <p class="modal-desc">
+                Semua bunga ini untuk kamu, yang layak mendapatkannya!
+            </p>
+            <div class="btn-group">
+                <a href="games.html" class="action-btn btn-primary">Kembali ke Menu</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const playArea = document.getElementById('play-area');
+        const basket = document.getElementById('basket');
+        const scoreText = document.getElementById('score-text');
+        const winModal = document.getElementById('win-modal');
+
+        let score = 0;
+        const maxScore = 10;
+        let isGameOver = false;
+
+        // Dimensi Game
+        const areaWidth = 300;
+        const areaHeight = 350;
+        const basketWidth = 50;
+        
+        let basketX = (areaWidth / 2) - (basketWidth / 2); // Center
+        let fallingObjects = [];
+
+        const sweetMessages = ["Gotcha!", "Buat kamu", "Cantik!", "Kena!", "Nice!"];
+        const flowerColors = ['#ff69b4', '#ff1493', '#ff8c00', '#ffeb3b']; // Pink, Deep Pink, Orange, Yellow
+
+        // Fungsi Bikin Elemen Bunga SVG Baru
+        function createBouquet() {
+            if(isGameOver) return;
+
+            const el = document.createElement('div');
+            el.className = 'bouquet';
+            const color = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+            
+            // Masukin SVG Bunga Mawar Simple
+            el.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="${color}" stroke="#fffdfa" stroke-width="1">
+                    <circle cx="12" cy="8" r="4"/>
+                    <circle cx="12" cy="16" r="4"/>
+                    <circle cx="8" cy="12" r="4"/>
+                    <circle cx="16" cy="12" r="4"/>
+                    <circle cx="12" cy="12" r="2" fill="#ffd700" stroke="none"/>
+                </svg>
+            `;
+
+            // Posisi X acak (0 sampai areaWidth - lebar bunga)
+            let x = Math.random() * (areaWidth - 35);
+            let y = -40;
+            // Kecepatan acak (1.5 - 3)
+            let speed = 1.5 + Math.random() * 1.5;
+
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            playArea.appendChild(el);
+
+            fallingObjects.push({ element: el, x: x, y: y, speed: speed });
+        }
+
+        // --- KONTROL KERANJANG (DRAG / SWIPE) ---
+        function moveBasket(clientX) {
+            const rect = playArea.getBoundingClientRect();
+            // Kalkulasi posisi x berdasarkan posisi relatif mouse/touch ke play area
+            let newX = clientX - rect.left - (basketWidth / 2);
+            
+            // Jaga biar keranjang ga keluar kotak
+            if(newX < 0) newX = 0;
+            if(newX > areaWidth - basketWidth) newX = areaWidth - basketWidth;
+            
+            basketX = newX;
+            basket.style.left = basketX + 'px';
+        }
+
+        // Untuk PC
+        let isDragging = false;
+        playArea.addEventListener('mousedown', (e) => { isDragging = true; moveBasket(e.clientX); });
+        window.addEventListener('mousemove', (e) => { if(isDragging) moveBasket(e.clientX); });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        // Untuk HP (Touch)
+        playArea.addEventListener('touchstart', (e) => { moveBasket(e.touches[0].clientX); });
+        playArea.addEventListener('touchmove', (e) => { moveBasket(e.touches[0].clientX); });
+
+        // --- GAME LOOP ---
+        function showFloatingText(x, y) {
+            const floatMsg = document.createElement('div');
+            floatMsg.className = 'floating-text';
+            floatMsg.innerText = sweetMessages[Math.floor(Math.random() * sweetMessages.length)];
+            floatMsg.style.left = x + 'px';
+            floatMsg.style.top = (y - 20) + 'px';
+            playArea.appendChild(floatMsg);
+            
+            setTimeout(() => floatMsg.remove(), 800);
+        }
+
+        function gameLoop() {
+            if (isGameOver) return;
+
+            // Update posisi semua bunga
+            for (let i = fallingObjects.length - 1; i >= 0; i--) {
+                let obj = fallingObjects[i];
+                obj.y += obj.speed;
+                obj.element.style.top = obj.y + 'px';
+
+                // Cek tabrakan dengan keranjang
+                // Posisi keranjang Y sekitar 350 (height) - 10 (bottom) - 45 (basket height) = 295
+                if (obj.y > 280 && obj.y < 320) {
+                    // Cek X: Lebar bunga 35, lebar basket 50. Pake toleransi dikit.
+                    if (obj.x + 20 > basketX && obj.x < basketX + basketWidth - 10) {
+                        // CATCHED!
+                        score++;
+                        scoreText.innerText = `Bunga Ditangkap: ${score} / ${maxScore}`;
+                        showFloatingText(obj.x, obj.y);
+                        
+                        // Hapus elemen dan array
+                        obj.element.remove();
+                        fallingObjects.splice(i, 1);
+
+                        if (score >= maxScore) {
+                            isGameOver = true;
+                            setTimeout(() => {
+                                winModal.style.display = 'flex';
+                            }, 500);
+                        }
+                        continue; // Lanjut loop array berikutnya
+                    }
+                }
+
+                // Kalau bunganya jatuh ke bawah (ga ketangkep)
+                if (obj.y > areaHeight) {
+                    obj.element.remove();
+                    fallingObjects.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Mulai spawning bunga (Tiap 1 detik muncul 1)
+        setInterval(createBouquet, 1000);
+
+        // Mulai animasi
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>

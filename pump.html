@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pump the Heart</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Playfair Display', serif;
+            -ms-overflow-style: none; scrollbar-width: none;
+            user-select: none; /* Biar teks ga ke-block pas tap cepet */
+        }
+        ::-webkit-scrollbar { display: none; }
+
+        body {
+            background-color: #f5e6d3;
+            color: #4b3621;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 50px 20px; overflow: hidden; position: relative;
+        }
+
+        .back-nav {
+            position: absolute; top: 30px; left: 30px;
+            text-decoration: none; color: #8b4513; font-weight: 700;
+            display: flex; align-items: center; gap: 8px; transition: 0.3s;
+            font-size: 15px; z-index: 10;
+        }
+        .back-nav:hover { transform: translateX(-5px); color: #c44747; }
+        .icon-svg-small { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+        header {
+            text-align: center; margin-bottom: 40px; margin-top: 20px;
+            animation: fadeInDown 1s ease-out forwards;
+        }
+        .subtitle { font-family: 'Dancing Script', cursive; font-size: 24px; color: #c44747; margin-bottom: 5px; }
+        .title { font-size: 32px; font-weight: 700; color: #3e2723; }
+
+        .game-area {
+            background: rgba(255, 253, 250, 0.85);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 69, 19, 0.1); border-radius: 24px;
+            padding: 40px 30px; width: 100%; max-width: 400px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 20px 40px rgba(139, 69, 19, 0.08);
+            position: relative;
+        }
+
+        /* PROGRESS BAR */
+        .progress-container {
+            width: 100%; height: 12px; background-color: #e6ccb8;
+            border-radius: 10px; margin-bottom: 10px; overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .progress-bar {
+            height: 100%; width: 0%; background-color: #c44747;
+            border-radius: 10px; transition: width 0.1s linear;
+        }
+        .progress-text { font-size: 14px; font-weight: 700; color: #8b4513; margin-bottom: 40px; }
+
+        /* INTERACTIVE HEART */
+        .heart-wrapper {
+            position: relative; width: 160px; height: 160px;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            transition: transform 0.05s ease;
+        }
+        .heart-wrapper:active { transform: scale(0.9); }
+        
+        .heart-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .heart-empty { fill: #e6ccb8; }
+        .heart-fill { 
+            fill: #c44747; 
+            /* Menggunakan variabel CSS untuk ngatur potongan dari bawah ke atas */
+            clip-path: inset(calc(100% - var(--fill)) 0 0 0); 
+            transition: clip-path 0.1s linear;
+        }
+
+        /* EFEK MUNCUL TEXT +LOVE */
+        .floating-text {
+            position: absolute; color: #c44747; font-weight: 700; font-size: 16px;
+            pointer-events: none; animation: floatUp 0.8s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+        }
+
+        /* WIN MODAL */
+        #win-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+            animation: softFadeIn 0.5s ease forwards;
+        }
+        .modal-content {
+            background: #fffdfa; padding: 40px 30px; border-radius: 20px;
+            text-align: center; width: 85%; max-width: 350px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 2px solid #e8dcca;
+        }
+        .modal-title { font-family: 'Dancing Script', cursive; font-size: 36px; color: #c44747; margin-bottom: 15px; line-height: 1.2; }
+        .modal-desc { font-size: 16px; color: #5d4037; line-height: 1.6; margin-bottom: 25px; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; }
+        .action-btn {
+            padding: 10px 20px; border-radius: 25px; font-weight: 700; cursor: pointer;
+            font-family: 'Playfair Display', serif; font-size: 14px; text-decoration: none; transition: 0.3s;
+        }
+        .btn-primary { background: #8b4513; color: white; border: none; box-shadow: 0 4px 15px rgba(139, 69, 19, 0.2); }
+        .btn-primary:active { transform: scale(0.95); }
+        .btn-secondary { background: transparent; color: #8b4513; border: 2px solid #8b4513; }
+        .btn-secondary:hover { background: #8b4513; color: white; }
+
+        @keyframes fadeInDown { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes softFadeIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        
+        .beat { animation: heartbeat 0.8s infinite; }
+        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    </style>
+</head>
+<body>
+
+    <a href="games.html" class="back-nav">
+        <svg class="icon-svg-small" viewBox="0 0 24 24">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Kembali
+    </a>
+
+    <header>
+        <p class="subtitle">Pump it up!</p>
+        <h1 class="title">Fill The Heart</h1>
+    </header>
+
+    <div class="game-area" id="game-area">
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="progress-text" id="progress-text">0%</div>
+
+        <div class="heart-wrapper" id="heart-btn" style="--fill: 0%;">
+            <svg class="heart-svg heart-empty" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <svg class="heart-svg heart-fill" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 14px; color: #8b4513; text-align: center;">
+            Tekan hatinya secepat mungkin sampai penuh!<br>Jangan sampai kosong.
+        </p>
+    </div>
+
+    <div id="win-modal">
+        <div class="modal-content">
+            <h2 class="modal-title">Hati Penuh!</h2>
+            <p class="modal-desc">
+                Yeayy! Terimakasii yaa uda bantu aku, my heart is only for you Nasywa..
+            </p>
+            <div class="btn-group">
+                <button class="action-btn btn-primary" onclick="resetGame()">Main Lagi</button>
+                <a href="games.html" class="action-btn btn-secondary">Menu Utama</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let progress = 0;
+        let isPlaying = true;
+        const heartBtn = document.getElementById('heart-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const winModal = document.getElementById('win-modal');
+        const gameArea = document.getElementById('game-area');
+
+        // Parameter Kesulitan
+        const clickPower = 4; // Tambah 4% per klik
+        const drainRate = 0.4; // Berkurang 0.4% per 50ms
+
+        function updateUI() {
+            // Update CSS Variable buat ngefek ke clip-path hati merah
+            heartBtn.style.setProperty('--fill', `${progress}%`);
+            progressBar.style.width = `${progress}%`;
+            progressText.innerText = `${Math.floor(progress)}%`;
+        }
+
+        function createFloatingText(e) {
+            const floatText = document.createElement('div');
+            floatText.innerText = "+Love";
+            floatText.className = 'floating-text';
+            
+            // Posisi klik relatif terhadap game area
+            const rect = gameArea.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            // Kalau event dari touch (HP)
+            if(e.touches && e.touches.length > 0) {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            }
+
+            // Kasih sedikit random posisi biar nyebar
+            floatText.style.left = `${x - 20 + (Math.random() * 40)}px`;
+            floatText.style.top = `${y - 20}px`;
+
+            gameArea.appendChild(floatText);
+
+            setTimeout(() => { floatText.remove(); }, 800);
+        }
+
+        function handleClick(e) {
+            if (!isPlaying) return;
+            
+            progress += clickPower;
+            if (progress >= 100) {
+                progress = 100;
+                gameWin();
+            }
+            
+            updateUI();
+            createFloatingText(e);
+        }
+
+        // Support click di PC dan tap di HP biar cepet
+        heartBtn.addEventListener('mousedown', handleClick);
+        heartBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Mencegah double trigger di HP
+            handleClick(e);
+        });
+
+        // Logika bocor/drain
+        let drainInterval = setInterval(() => {
+            if (isPlaying && progress > 0) {
+                progress -= drainRate;
+                if (progress < 0) progress = 0;
+                updateUI();
+            }
+        }, 50);
+
+        function gameWin() {
+            isPlaying = false;
+            heartBtn.classList.add('beat'); // Kasih efek detak jantung
+            
+            setTimeout(() => {
+                winModal.style.display = 'flex';
+            }, 800);
+        }
+
+        function resetGame() {
+            progress = 0;
+            isPlaying = true;
+            heartBtn.classList.remove('beat');
+            winModal.style.display = 'none';
+            updateUI();
+        }
+    </script>
+</body>
+</html>

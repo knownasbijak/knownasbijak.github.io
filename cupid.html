@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cupid's Arrow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Playfair Display', serif;
+            -ms-overflow-style: none; scrollbar-width: none;
+            user-select: none; 
+        }
+        ::-webkit-scrollbar { display: none; }
+
+        body {
+            background-color: #f5e6d3;
+            color: #4b3621;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 50px 20px; overflow: hidden; position: relative;
+        }
+
+        /* BACK BUTTON */
+        .back-nav {
+            position: absolute; top: 30px; left: 30px;
+            text-decoration: none; color: #8b4513; font-weight: 700;
+            display: flex; align-items: center; gap: 8px; transition: 0.3s;
+            font-size: 15px; z-index: 10;
+        }
+        .back-nav:hover { transform: translateX(-5px); color: #c44747; }
+        .icon-svg-small { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+        /* HEADER */
+        header {
+            text-align: center; margin-bottom: 25px; margin-top: 10px;
+            animation: fadeInDown 1s ease-out forwards;
+        }
+        .subtitle { font-family: 'Dancing Script', cursive; font-size: 24px; color: #c44747; margin-bottom: 5px; }
+        .title { font-size: 32px; font-weight: 700; color: #3e2723; }
+
+        /* GAME AREA */
+        .game-container {
+            background: rgba(255, 253, 250, 0.85);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 69, 19, 0.1); border-radius: 24px;
+            padding: 25px; width: 100%; max-width: 400px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 20px 40px rgba(139, 69, 19, 0.08);
+            animation: fadeInUp 1s 0.2s ease-out forwards;
+            opacity: 0; transform: translateY(20px);
+        }
+
+        .score-board {
+            font-size: 18px; font-weight: 700; color: #8b4513;
+            margin-bottom: 15px; letter-spacing: 1px;
+        }
+
+        /* PLAY AREA (Canvas Game) */
+        .play-area {
+            width: 300px; height: 350px;
+            background-color: #fffdfa;
+            border: 2px solid #e8dcca; border-radius: 16px;
+            position: relative; overflow: hidden;
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.03);
+            cursor: crosshair;
+        }
+
+        /* TARGET HEART */
+        .target-heart {
+            position: absolute; top: 20px; left: 0px;
+            width: 45px; height: 45px;
+            fill: #c44747;
+            filter: drop-shadow(0 4px 6px rgba(196, 71, 71, 0.3));
+            transition: fill 0.2s;
+        }
+        .target-heart.hit { fill: #ff8c00; transform: scale(1.2); }
+
+        /* ARROW */
+        .arrow {
+            position: absolute; bottom: 10px; left: 125px; /* 150 (center) - 25 (half width) */
+            width: 50px; height: 60px;
+            fill: none; stroke: #8b4513; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+            filter: drop-shadow(0 4px 4px rgba(139, 69, 19, 0.2));
+            transition: bottom 0s linear;
+        }
+
+        /* FLOATING TEXT */
+        .floating-text {
+            position: absolute; font-weight: 700; font-size: 18px; font-family: 'Dancing Script', cursive;
+            pointer-events: none; animation: floatUp 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            text-align: center; width: 100%; top: 50px; left: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+            20% { opacity: 1; transform: translateY(0) scale(1.1); }
+            80% { opacity: 1; transform: translateY(-20px) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(0.9); }
+        }
+
+        /* SHOOT BUTTON */
+        .shoot-btn {
+            margin-top: 20px; padding: 12px 40px;
+            background-color: #8b4513; color: white; border: none; border-radius: 25px;
+            font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700;
+            cursor: pointer; box-shadow: 0 6px 15px rgba(139, 69, 19, 0.2);
+            transition: transform 0.1s;
+        }
+        .shoot-btn:active { transform: scale(0.92); }
+
+        /* WIN MODAL */
+        #win-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+            animation: softFadeIn 0.5s ease forwards;
+        }
+        .modal-content {
+            background: #fffdfa; padding: 40px 30px; border-radius: 20px;
+            text-align: center; width: 85%; max-width: 350px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 2px solid #e8dcca;
+        }
+        .modal-title { font-family: 'Dancing Script', cursive; font-size: 36px; color: #c44747; margin-bottom: 15px; line-height: 1.2; }
+        .modal-desc { font-size: 16px; color: #5d4037; line-height: 1.6; margin-bottom: 25px; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; }
+        .action-btn {
+            padding: 10px 20px; border-radius: 25px; font-weight: 700; cursor: pointer;
+            font-family: 'Playfair Display', serif; font-size: 14px; text-decoration: none; transition: 0.3s;
+        }
+        .btn-primary { background: #8b4513; color: white; border: none; box-shadow: 0 4px 15px rgba(139, 69, 19, 0.2); }
+        .btn-primary:active { transform: scale(0.95); }
+
+        @keyframes fadeInDown { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes softFadeIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <a href="games.html" class="back-nav">
+        <svg class="icon-svg-small" viewBox="0 0 24 24">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Kembali
+    </a>
+
+    <header>
+        <p class="subtitle">Take a shot!</p>
+        <h1 class="title">Cupid's Arrow</h1>
+    </header>
+
+    <div class="game-container">
+        <div class="score-board" id="score-text">Hati Terpanah: 0 / 5</div>
+        
+        <div class="play-area" id="play-area" onclick="shootArrow()">
+            <svg class="target-heart" id="target-heart" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+
+            <svg class="arrow" id="arrow" viewBox="0 0 24 24">
+                <line x1="12" y1="22" x2="12" y2="2"></line>
+                <polyline points="7 7 12 2 17 7"></polyline>
+            </svg>
+        </div>
+
+        <button class="shoot-btn" onclick="shootArrow()">Tembak!</button>
+        <p style="margin-top: 15px; font-size: 13px; color: #8b4513;">(Bisa juga tap langsung di area putih)</p>
+    </div>
+
+    <div id="win-modal">
+        <div class="modal-content">
+            <svg style="width: 55px; height: 55px; fill: #c44747; margin-bottom: 15px;" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#c44747" stroke-width="2"></circle>
+                <circle cx="12" cy="12" r="6" fill="none" stroke="#c44747" stroke-width="2"></circle>
+                <circle cx="12" cy="12" r="2" fill="#c44747"></circle>
+            </svg>
+            <h2 class="modal-title">You did it!</h2>
+            <p class="modal-desc">
+                Gimana sih inii udah cakep jago nembak lagi, jadi makin jwhshahs.
+            </p>
+            <div class="btn-group">
+                <a href="games.html" class="action-btn btn-primary">Kembali ke Menu</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const playArea = document.getElementById('play-area');
+        const target = document.getElementById('target-heart');
+        const arrow = document.getElementById('arrow');
+        const scoreText = document.getElementById('score-text');
+        const winModal = document.getElementById('win-modal');
+
+        let score = 0;
+        const maxScore = 5;
+        
+        // Game State
+        let isShooting = false;
+        let isGameOver = false;
+        
+        // Target Logic (Heart)
+        let targetX = 0; // Starts at left
+        let targetDir = 1; // 1 = right, -1 = left
+        let targetSpeed = 2.5; // Initial speed
+        const targetMaxX = 255; // 300 (play area width) - 45 (target width)
+
+        // Arrow Logic
+        let arrowY = 10; // Bottom offset
+        const arrowSpeed = 20;
+
+        // Flirty Messages Array
+        const hitMessages = ["Tepat di hati!", "Cakepp!", "Gacor!", "Ciee kena!", "One more!"];
+        const missMessages = ["Yahh meleset", "Aduhh!", "Almost!", "Oopsie"];
+
+        // Animasi Loop Pakai RequestAnimationFrame biar 60fps Smooth
+        function gameLoop() {
+            if (isGameOver) return;
+
+            // 1. Gerakin Hati (Kiri-Kanan)
+            if (!isShooting) {
+                targetX += targetSpeed * targetDir;
+                if (targetX >= targetMaxX) {
+                    targetX = targetMaxX;
+                    targetDir = -1;
+                } else if (targetX <= 0) {
+                    targetX = 0;
+                    targetDir = 1;
+                }
+                target.style.left = targetX + 'px';
+            }
+
+            // 2. Gerakin Panah (Atas)
+            if (isShooting) {
+                arrowY += arrowSpeed;
+                arrow.style.bottom = arrowY + 'px';
+
+                // 3. Cek Tabrakan pas panah nyampe ketinggian target (Top 20px)
+                // Tinggi play area 350px. Hati di top 20px (berarti bottom sekitar 285px - 330px)
+                if (arrowY >= 280) { 
+                    checkCollision();
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function shootArrow() {
+            if (isShooting || isGameOver) return;
+            isShooting = true;
+        }
+
+        function showFloatingText(msg, color) {
+            // Remove old messages
+            const oldMsgs = document.querySelectorAll('.floating-text');
+            oldMsgs.forEach(el => el.remove());
+
+            const floatMsg = document.createElement('div');
+            floatMsg.className = 'floating-text';
+            floatMsg.innerText = msg;
+            floatMsg.style.color = color;
+            playArea.appendChild(floatMsg);
+        }
+
+        function checkCollision() {
+            isShooting = false;
+            
+            // X center panah = 150 (fix di tengah play area 300px)
+            const arrowCenter = 150; 
+            // X center target = targetX + setengah lebarnya (22.5)
+            const targetCenter = targetX + 22.5;
+            
+            // Cek selisih jarak
+            const hitTolerance = 30; // Radius toleransi (bisa diatur biar gampang/susah)
+
+            if (Math.abs(arrowCenter - targetCenter) <= hitTolerance) {
+                // KENA HIT!
+                score++;
+                scoreText.innerText = `Hati Terpanah: ${score} / ${maxScore}`;
+                
+                // Visual effect hati dapet hit
+                target.classList.add('hit');
+                setTimeout(() => target.classList.remove('hit'), 200);
+
+                showFloatingText(hitMessages[Math.floor(Math.random() * hitMessages.length)], '#c44747');
+                
+                // Tambah susah dikit tiap kena
+                targetSpeed += 0.8; 
+
+                if (score >= maxScore) {
+                    isGameOver = true;
+                    setTimeout(() => {
+                        winModal.style.display = 'flex';
+                    }, 800);
+                }
+            } else {
+                // MELESET
+                showFloatingText(missMessages[Math.floor(Math.random() * missMessages.length)], '#8b4513');
+            }
+
+            // Reset panah balik ke bawah
+            arrowY = 10;
+            arrow.style.bottom = arrowY + 'px';
+            
+            // Kasih jeda kecil sebelum panah bisa jalan lagi
+            target.style.left = targetX + 'px'; // Kunci posisi target sebentar
+        }
+
+        // Mulai game loop saat halaman dimuat
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>

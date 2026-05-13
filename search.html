@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Search</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Playfair Display', serif;
+            -ms-overflow-style: none; scrollbar-width: none;
+            user-select: none; /* Mencegah teks ter-block saat diswipe */
+        }
+        ::-webkit-scrollbar { display: none; }
+
+        body {
+            background-color: #f5e6d3;
+            color: #4b3621;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 50px 20px; overflow-x: hidden; position: relative;
+        }
+
+        /* BACK BUTTON */
+        .back-nav {
+            position: absolute; top: 30px; left: 30px;
+            text-decoration: none; color: #8b4513; font-weight: 700;
+            display: flex; align-items: center; gap: 8px; transition: 0.3s;
+            font-size: 15px; z-index: 10;
+        }
+        .back-nav:hover { transform: translateX(-5px); color: #c44747; }
+        .icon-svg-small { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+        /* HEADER */
+        header {
+            text-align: center; margin-bottom: 25px; margin-top: 10px;
+            animation: fadeInDown 1s ease-out forwards;
+        }
+        .subtitle { font-family: 'Dancing Script', cursive; font-size: 24px; color: #c44747; margin-bottom: 5px; }
+        .title { font-size: 32px; font-weight: 700; color: #3e2723; }
+
+        /* GAME AREA */
+        .game-container {
+            background: rgba(255, 253, 250, 0.85);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 69, 19, 0.1); border-radius: 24px;
+            padding: 30px 25px; width: 100%; max-width: 450px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 20px 40px rgba(139, 69, 19, 0.08);
+            animation: fadeInUp 1s 0.2s ease-out forwards;
+            opacity: 0; transform: translateY(20px);
+        }
+
+        /* WORD LIST */
+        .word-list {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+            margin-bottom: 20px; width: 100%;
+        }
+        .word-chip {
+            padding: 6px 14px; border-radius: 20px; background-color: #fff0db;
+            color: #8b4513; font-size: 14px; font-weight: 700;
+            transition: all 0.4s ease; border: 1px solid rgba(139, 69, 19, 0.1);
+        }
+        .word-chip.found {
+            background-color: #e8dcca; color: #a89f91;
+            text-decoration: line-through; border-color: transparent;
+        }
+
+        /* GRID */
+        .grid-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            background-color: #e8dcca;
+            padding: 6px;
+            border-radius: 12px;
+            touch-action: none; /* Wajib! Biar pas swipe grid, layar ga ikut ke-scroll */
+            width: 100%;
+            max-width: 380px;
+        }
+        .cell {
+            aspect-ratio: 1 / 1;
+            background-color: #fffdfa;
+            border-radius: 6px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 18px; font-weight: 700; color: #4b3621;
+            cursor: pointer; transition: background-color 0.1s, color 0.1s, transform 0.1s;
+        }
+        .cell.highlighted {
+            background-color: #d8bfa9; color: #5d4037; transform: scale(0.95);
+        }
+        .cell.found-locked {
+            background-color: #c44747; color: #fffdfa;
+            box-shadow: 0 2px 6px rgba(196, 71, 71, 0.3);
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .instruction { margin-top: 25px; font-size: 14px; color: #8b4513; text-align: center; }
+
+        /* WIN MODAL */
+        #win-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+            animation: softFadeIn 0.5s ease forwards;
+        }
+        .modal-content {
+            background: #fffdfa; padding: 40px 30px; border-radius: 20px;
+            text-align: center; width: 85%; max-width: 350px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 2px solid #e8dcca;
+        }
+        .modal-title { font-family: 'Dancing Script', cursive; font-size: 34px; color: #c44747; margin-bottom: 15px; line-height: 1.2; }
+        .modal-desc { font-size: 16px; color: #5d4037; line-height: 1.6; margin-bottom: 25px; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; }
+        .action-btn {
+            padding: 10px 20px; border-radius: 25px; font-weight: 700; cursor: pointer;
+            font-family: 'Playfair Display', serif; font-size: 14px; text-decoration: none; transition: 0.3s;
+        }
+        .btn-primary { background: #8b4513; color: white; border: none; box-shadow: 0 4px 15px rgba(139, 69, 19, 0.2); }
+        .btn-primary:active { transform: scale(0.95); }
+
+        @keyframes fadeInDown { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes softFadeIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        
+    </style>
+</head>
+<body>
+
+    <a href="games.html" class="back-nav">
+        <svg class="icon-svg-small" viewBox="0 0 24 24">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Kembali
+    </a>
+
+    <header>
+        <p class="subtitle">Find the hidden meaning</p>
+        <h1 class="title">Word Search</h1>
+    </header>
+
+    <div class="game-container">
+        <div class="word-list" id="word-list">
+            <div class="word-chip" id="chip-GORGEOUS">GORGEOUS</div>
+            <div class="word-chip" id="chip-PRETTY">PRETTY</div>
+            <div class="word-chip" id="chip-ADORABLE">ADORABLE</div>
+            <div class="word-chip" id="chip-CHARMING">CHARMING</div>
+            <div class="word-chip" id="chip-STUNNING">STUNNING</div>
+            <div class="word-chip" id="chip-ATTRACTIVE">ATTRACTIVE</div>
+        </div>
+
+        <div class="grid-board" id="grid-board"></div>
+
+        <p class="instruction">Usap / tarik garis pada huruf untuk menemukan kata-kata di atas.</p>
+    </div>
+
+    <div id="win-modal">
+        <div class="modal-content">
+            <svg style="width: 50px; height: 50px; fill: #c44747; margin-bottom: 15px;" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <h2 class="modal-title">You Found Them All!</h2>
+            <p class="modal-desc">
+                Pintar banget cii Nasywa aku. Btw kata-kata itu mendeskripsikan bagaimana diri kamu ehehe.
+            </p>
+            <div class="btn-group">
+                <a href="games.html" class="action-btn btn-primary">Kembali ke Menu</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Array Grid 10x10 Hardcoded dengan susunan kata baru
+        const gridData = [
+            ['A','T','T','R','A','C','T','I','V','E'],
+            ['G','M','P','R','E','T','T','Y','W','S'],
+            ['O','K','L','Z','Q','W','P','X','C','T'],
+            ['R','J','F','B','V','N','M','Y','H','U'],
+            ['G','H','I','O','U','P','L','K','A','N'],
+            ['E','D','S','A','Z','X','C','V','R','N'],
+            ['O','M','N','B','V','C','X','Z','M','I'],
+            ['U','Y','T','R','E','W','Q','A','I','N'],
+            ['S','D','F','G','H','J','K','L','N','G'],
+            ['A','D','O','R','A','B','L','E','G','W']
+        ];
+
+        const targetWords = ["GORGEOUS", "PRETTY", "ADORABLE", "CHARMING", "STUNNING", "ATTRACTIVE"];
+        let foundWords = [];
+
+        const board = document.getElementById('grid-board');
+        let isDragging = false;
+        let startCell = null;
+        let currentSelection = [];
+
+        // Build Grid DOM
+        for (let r = 0; r < 10; r++) {
+            for (let c = 0; c < 10; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.innerText = gridData[r][c];
+                cell.dataset.r = r;
+                cell.dataset.c = c;
+                board.appendChild(cell);
+            }
+        }
+
+        // --- INTERACTION LOGIC (Mouse & Touch) ---
+        function getCellFromEvent(e) {
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            
+            // Handle touch event
+            if(e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            
+            const element = document.elementFromPoint(clientX, clientY);
+            if (element && element.classList.contains('cell')) {
+                return element;
+            }
+            return null;
+        }
+
+        function clearHighlight() {
+            document.querySelectorAll('.cell.highlighted').forEach(c => c.classList.remove('highlighted'));
+            currentSelection = [];
+        }
+
+        function highlightLine(start, end) {
+            clearHighlight();
+            const r1 = parseInt(start.dataset.r), c1 = parseInt(start.dataset.c);
+            const r2 = parseInt(end.dataset.r), c2 = parseInt(end.dataset.c);
+            
+            const dr = r2 - r1;
+            const dc = c2 - c1;
+
+            // Pastikan pergerakan adalah lurus (Horizontal, Vertikal, atau Diagonal)
+            if (dr !== 0 && dc !== 0 && Math.abs(dr) !== Math.abs(dc)) return;
+
+            const steps = Math.max(Math.abs(dr), Math.abs(dc));
+            const rStep = dr === 0 ? 0 : dr / steps;
+            const cStep = dc === 0 ? 0 : dc / steps;
+
+            for (let i = 0; i <= steps; i++) {
+                const r = r1 + rStep * i;
+                const c = c1 + cStep * i;
+                const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+                if (cell) {
+                    cell.classList.add('highlighted');
+                    currentSelection.push(cell);
+                }
+            }
+        }
+
+        function checkWord() {
+            if (currentSelection.length === 0) return;
+            
+            let word = currentSelection.map(c => c.innerText).join('');
+            let wordRev = word.split('').reverse().join('');
+            
+            let match = null;
+            if (targetWords.includes(word) && !foundWords.includes(word)) match = word;
+            else if (targetWords.includes(wordRev) && !foundWords.includes(wordRev)) match = wordRev;
+
+            if (match) {
+                foundWords.push(match);
+                // Ubah status CSS huruf jadi terkunci (merah)
+                currentSelection.forEach(c => {
+                    c.classList.remove('highlighted');
+                    c.classList.add('found-locked');
+                });
+                // Coret kata di list atas
+                document.getElementById(`chip-${match}`).classList.add('found');
+
+                // Cek menang
+                if (foundWords.length === targetWords.length) {
+                    setTimeout(() => {
+                        document.getElementById('win-modal').style.display = 'flex';
+                    }, 600);
+                }
+            } else {
+                clearHighlight();
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        board.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startCell = getCellFromEvent(e);
+            if (startCell) highlightLine(startCell, startCell);
+        });
+
+        board.addEventListener('mousemove', (e) => {
+            if (!isDragging || !startCell) return;
+            const currentCell = getCellFromEvent(e);
+            if (currentCell) highlightLine(startCell, currentCell);
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                checkWord();
+                isDragging = false;
+                startCell = null;
+            }
+        });
+
+        // Touch Support untuk HP
+        board.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Matikan scroll layar
+            isDragging = true;
+            startCell = getCellFromEvent(e);
+            if (startCell) highlightLine(startCell, startCell);
+        }, { passive: false });
+
+        board.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDragging || !startCell) return;
+            const currentCell = getCellFromEvent(e);
+            if (currentCell) highlightLine(startCell, currentCell);
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            if (isDragging) {
+                checkWord();
+                isDragging = false;
+                startCell = null;
+            }
+        });
+
+    </script>
+</body>
+</html>
